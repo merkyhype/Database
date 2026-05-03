@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Syndicate — Betting Management DB</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#0d0f14; --surface:#13161e; --card:#1a1e29; --border:#252b3b;
+  --gold:#c9a84c; --gold-dim:#8a6f2e; --gold-glow:rgba(201,168,76,.12);
+  --green:#3ddc84; --red:#ff5252; --blue:#4e8cff; --orange:#ff9f43; --purple:#a78bfa;
+  --muted:#4a5068; --text:#e2e5f0; --text-dim:#7a8099;
+  --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif; --display:'Bebas Neue',cursive;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-family:var(--display);font-size:24px;letter-spacing:3px;color:var(--gold)}
+.logo-sub{font-size:10px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase}
+.hstats{display:flex;gap:32px}
+.hs{text-align:right}
+.hs-val{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--gold)}
+.hs-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px}
+.tabs{display:flex;padding:20px 28px 0;border-bottom:1px solid var(--border);background:var(--surface)}
+.tab{padding:10px 22px;font-size:11px;font-weight:600;letter-spacing:1.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-dim);transition:all .15s;text-transform:uppercase}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.main{padding:24px 28px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-title{font-family:var(--display);font-size:20px;letter-spacing:2px}
+.sec-count{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-left:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;letter-spacing:.5px;cursor:pointer;border:none;transition:all .15s;font-family:var(--sans)}
+.btn-gold{background:var(--gold);color:#0d0f14}
+.btn-gold:hover{background:#d4b358}
+.btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--muted);color:var(--text)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-danger{background:transparent;color:var(--red);border:1px solid transparent;padding:4px 8px;font-size:13px;cursor:pointer;border-radius:4px;font-family:var(--sans)}
+.btn-danger:hover{background:rgba(255,82,82,.1)}
+.legend{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-dim)}
+.ft{font-size:9px;padding:1px 6px;border-radius:3px;font-family:var(--mono);letter-spacing:.5px;margin-left:3px;vertical-align:middle}
+.ft-formula{background:rgba(201,168,76,.15);color:var(--gold-dim)}
+.ft-rollup{background:rgba(78,140,255,.15);color:var(--blue)}
+.ft-link{background:rgba(167,139,250,.15);color:var(--purple)}
+.table-wrap{border:1px solid var(--border);border-radius:10px;overflow:auto;background:var(--surface)}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--card);border-bottom:1px solid var(--border)}
+th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-dim);white-space:nowrap}
+th.tc-formula{color:var(--gold-dim)}
+th.tc-rollup{color:var(--blue);opacity:.8}
+td{padding:11px 14px;border-bottom:1px solid rgba(37,43,59,.6);font-size:13px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,.018)}
+.mono{font-family:var(--mono)}
+.formula-cell{color:var(--gold);font-family:var(--mono)}
+.rollup-cell{color:var(--blue);font-family:var(--mono)}
+.pos{color:var(--green)}
+.neg{color:var(--red)}
+.neutral{color:var(--text-dim)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px}
+.b-won{background:rgba(61,220,132,.12);color:var(--green)}
+.b-lost{background:rgba(255,82,82,.12);color:var(--red)}
+.b-pending{background:rgba(201,168,76,.12);color:var(--gold)}
+.b-push{background:rgba(78,140,255,.12);color:var(--blue)}
+.b-halfwin{background:rgba(61,220,132,.08);color:#7ed9aa}
+.b-halfloss{background:rgba(255,82,82,.08);color:#ff8a8a}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.linked-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);border-radius:4px;padding:3px 8px;font-size:12px;color:var(--purple)}
+.empty{padding:48px;text-align:center;color:var(--text-dim)}
+.empty-icon{font-size:32px;margin-bottom:10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;margin-bottom:20px}
+.kcard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.kcard-val{font-family:var(--mono);font-size:20px;font-weight:500;margin-bottom:4px}
+.kcard-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px}
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.overlay.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal-hd{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-family:var(--display);font-size:18px;letter-spacing:2px;color:var(--gold)}
+.modal-x{background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;padding:4px 7px;border-radius:4px}
+.modal-x:hover{color:var(--text);background:var(--border)}
+.modal-bd{padding:20px 24px}
+.modal-ft{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+.fg{margin-bottom:16px}
+.fl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:6px}
+.fi{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:var(--sans);font-size:13px;transition:border-color .15s;outline:none;-webkit-appearance:none;appearance:none}
+.fi:focus{border-color:var(--gold-dim)}
+.fi option{background:var(--card)}
+.computed{background:var(--surface);border:1px dashed var(--border);border-radius:6px;padding:9px 12px;font-family:var(--mono);font-size:13px;color:var(--gold)}
+.fhint{font-size:10px;color:var(--text-dim);margin-top:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">♠</div>
+    <div>
+      <div class="logo-text">SYNDICATE</div>
+      <div class="logo-sub">Betting Management Platform</div>
+    </div>
+  </div>
+  <div class="hstats">
+    <div class="hs"><div class="hs-val" id="h-capital">₦0.00</div><div class="hs-label">Total Capital</div></div>
+    <div class="hs"><div class="hs-val" id="h-pnl">₦0.00</div><div class="hs-label">Total P&L</div></div>
+    <div class="hs"><div class="hs-val" id="h-winrate">0%</div><div class="hs-label">Win Rate</div></div>
+    <div class="hs"><div class="hs-val" id="h-bets">0</div><div class="hs-label">Total Bets</div></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-inv" onclick="switchTab('investors')">👤 Investors</div>
+  <div class="tab" id="tab-ledger" onclick="switchTab('ledger')">📒 Betting Ledger</div>
+</div>
+
+<div class="main" id="main-content"></div>
+
+<!-- INVESTOR MODAL -->
+<div class="overlay" id="inv-modal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hd">
+      <div class="modal-title" id="inv-modal-title">ADD INVESTOR</div>
+      <button class="modal-x" onclick="closeModal('inv-modal')">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div class="fg"><label class="fl">Client Name</label><input class="fi" id="inv-name" type="text" placeholder="Full name"/></div>
+      <div class="fg"><label class="fl">Initial Deposit (₦)</label><input class="fi" id="inv-deposit" type="number" placeholder="500000"/></div>
+      <div class="fg"><label class="fl">Profit Share % <span style="font-weight:400;text-transform:none;letter-spacing:0">(firm's management fee)</span></label><input class="fi" id="inv-ps" type="number" placeholder="20" min="0" max="100"/></div>
+      <div class="fg">
+        <label class="fl">Total Net Profit <span class="ft ft-rollup">rollup</span></label>
+        <div class="computed" id="inv-tnp-display">—</div>
+        <div class="fhint">⟳ Auto-summed from all linked bets in the Betting Ledger</div>
+      </div>
+      <div class="fg">
+        <label class="fl">Current Balance <span class="ft ft-formula">formula</span></label>
+        <div class="computed" id="inv-bal-display">—</div>
+        <div class="fhint">= Initial Deposit + Total Net Profit</div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('inv-modal')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveInvestor()">Save Investor</button>
+    </div>
+  </div>
+</div>
+
+<!-- BET MODAL -->
+<div class="overlay" id="bet-modal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hd">
+      <div class="modal-title" id="bet-modal-title">LOG BET</div>
+      <button class="modal-x" onclick="closeModal('bet-modal')">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div class="fg"><label class="fl">Date</label><input class="fi" id="bet-date" type="date"/></div>
+      <div class="fg"><label class="fl">Match / Event</label><input class="fi" id="bet-event" type="text" placeholder="e.g. Lakers vs Nuggets"/></div>
+      <div class="grid2">
+        <div class="fg"><label class="fl">Odds (Decimal)</label><input class="fi" id="bet-odds" type="number" step="0.01" placeholder="1.95" oninput="updateBetPreview()"/></div>
+        <div class="fg"><label class="fl">Stake Size (₦)</label><input class="fi" id="bet-stake" type="number" placeholder="50000" oninput="updateBetPreview()"/></div>
+      </div>
+      <div class="fg">
+        <label class="fl">Result</label>
+        <select class="fi" id="bet-result" onchange="updateBetPreview()">
+          <option>Pending</option><option>Won</option><option>Lost</option><option>Push</option><option>Half-Win</option><option>Half-Loss</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Net Return <span class="ft ft-formula">formula</span></label>
+        <div class="computed" id="bet-net-display">—</div>
+        <div class="fhint">Won: (Stake × Odds) − Stake &nbsp;|&nbsp; Lost: −Stake &nbsp;|&nbsp; Push: 0 &nbsp;|&nbsp; Pending: —</div>
+      </div>
+      <div class="fg">
+        <label class="fl">Investor <span class="ft ft-link">linked record</span></label>
+        <select class="fi" id="bet-investor"></select>
+        <div class="fhint">🔗 Links this bet to the Investors table — updates their Rollup & Balance automatically</div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('bet-modal')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveBet()">Save Bet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+let investors = [
+  {id:'inv1', name:'Chukwuemeka Obi',  deposit:500000, profitShare:20},
+  {id:'inv2', name:'Amaka Nwosu',       deposit:250000, profitShare:15},
+  {id:'inv3', name:'Daniel Afolabi',    deposit:750000, profitShare:25},
+];
+let bets = [
+  {id:'b1', date:'2025-05-01', event:'Man City vs Arsenal',       odds:1.85, stake:50000, result:'Won',     investorId:'inv1'},
+  {id:'b2', date:'2025-05-02', event:'Lakers vs Nuggets',         odds:2.10, stake:30000, result:'Lost',    investorId:'inv1'},
+  {id:'b3', date:'2025-05-03', event:'Real Madrid vs Barcelona',  odds:3.20, stake:20000, result:'Push',    investorId:'inv2'},
+  {id:'b4', date:'2025-05-04', event:'Celtics vs Heat G2',        odds:1.75, stake:40000, result:'Won',     investorId:'inv3'},
+  {id:'b5', date:'2025-05-05', event:'Bayern vs Dortmund',        odds:2.55, stake:25000, result:'Pending', investorId:'inv2'},
+];
+let currentTab='investors', editingInvId=null, editingBetId=null;
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function uid(){return 'id'+Math.random().toString(36).slice(2,9)}
+function fmt(n,sign){
+  if(n===null||n===undefined||isNaN(n))return'—';
+  const abs=Math.abs(n);
+  const s='₦'+abs.toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return n<0?'-'+s:(sign&&n>0?'+'+s:s);
+}
+function calcNet(r,stake,odds){
+  if(r==='Won')   return+(stake*odds-stake).toFixed(2);
+  if(r==='Lost')  return -stake;
+  if(r==='Push')  return 0;
+  if(r==='Half-Win')  return+((stake*odds-stake)/2).toFixed(2);
+  if(r==='Half-Loss') return-(stake/2);
+  return null;
+}
+function totalNetProfit(invId){
+  return bets.filter(b=>b.investorId===invId).reduce((a,b)=>{const v=calcNet(b.result,b.stake,b.odds);return a+(v||0);},0);
+}
+function invName(id){const i=investors.find(x=>x.id===id);return i?i.name:'—'}
+
+const RESULT_META={
+  Won:       {cls:'b-won',      dot:'#3ddc84', label:'WON'},
+  Lost:      {cls:'b-lost',     dot:'#ff5252', label:'LOST'},
+  Pending:   {cls:'b-pending',  dot:'#c9a84c', label:'PENDING'},
+  Push:      {cls:'b-push',     dot:'#4e8cff', label:'PUSH'},
+  'Half-Win':{cls:'b-halfwin',  dot:'#7ed9aa', label:'HALF WIN'},
+  'Half-Loss':{cls:'b-halfloss',dot:'#ff8a8a', label:'HALF LOSS'},
+};
+function badgeHtml(result){
+  const m=RESULT_META[result]||RESULT_META['Pending'];
+  return`<span class="badge ${m.cls}"><span class="dot" style="background:${m.dot}"></span>${m.label}</span>`;
+}
+function netHtml(bet){
+  const v=calcNet(bet.result,bet.stake,bet.odds);
+  if(v===null)return'<span class="neutral mono">—</span>';
+  const cls=v>0?'pos':v<0?'neg':'neutral';
+  return`<span class="${cls} mono">${fmt(v,true)}</span>`;
+}
+
+// ── HEADER UPDATE ────────────────────────────────────────────────────────────
+function updateHeader(){
+  const cap=investors.reduce((a,i)=>a+i.deposit,0);
+  const pnl=investors.reduce((a,i)=>a+totalNetProfit(i.id),0);
+  const settled=bets.filter(b=>b.result!=='Pending');
+  const wr=settled.length?Math.round(bets.filter(b=>b.result==='Won').length/settled.length*100):0;
+  document.getElementById('h-capital').textContent=fmt(cap);
+  const pnlEl=document.getElementById('h-pnl');
+  pnlEl.textContent=fmt(pnl,true);
+  pnlEl.style.color=pnl>=0?'var(--green)':'var(--red)';
+  document.getElementById('h-winrate').textContent=wr+'%';
+  document.getElementById('h-bets').textContent=bets.length;
+}
+
+// ── TAB SWITCH ───────────────────────────────────────────────────────────────
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById('tab-inv').className='tab'+(tab==='investors'?' active':'');
+  document.getElementById('tab-ledger').className='tab'+(tab==='ledger'?' active':'');
+  render();
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function render(){
+  updateHeader();
+  const el=document.getElementById('main-content');
+  el.innerHTML = currentTab==='investors' ? renderInvestors() : renderLedger();
+}
+
+function renderInvestors(){
+  const rows=investors.length===0
+    ?`<tr><td colspan="7"><div class="empty"><div class="empty-icon">👤</div><div>No investors yet. Click "+ Add Investor" to get started.</div></div></td></tr>`
+    :investors.map(inv=>{
+      const tnp=totalNetProfit(inv.id);
+      const bal=inv.deposit+tnp;
+      const bc=bets.filter(b=>b.investorId===inv.id).length;
+      const tnpCls=tnp>=0?'pos':'neg';
+      const balCls=bal>=inv.deposit?'pos':'neg';
+      return`<tr>
+        <td><strong>${inv.name}</strong></td>
+        <td class="mono">${fmt(inv.deposit)}</td>
+        <td class="mono">${inv.profitShare}%</td>
+        <td><span class="rollup-cell ${tnpCls}">${fmt(tnp,true)}</span></td>
+        <td><span class="formula-cell ${balCls}">${fmt(bal)}</span></td>
+        <td><span class="linked-badge">🔗 ${bc} bet${bc!==1?'s':''}</span></td>
+        <td><span style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="openEditInv('${inv.id}')">Edit</button>
+          <button class="btn-danger" onclick="deleteInv('${inv.id}')">✕</button>
+        </span></td>
+      </tr>`;
+    }).join('');
+
+  return`
+  <div class="toolbar">
+    <div><span class="sec-title">INVESTORS</span><span class="sec-count">${investors.length} records</span></div>
+    <button class="btn btn-gold" onclick="openAddInv()">+ Add Investor</button>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><span class="ft ft-formula">formula</span>Computed field</div>
+    <div class="legend-item"><span class="ft ft-rollup">rollup</span>Aggregated from Betting Ledger</div>
+    <div class="legend-item"><span class="ft ft-link">linked</span>Connected to Betting Ledger records</div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th>Client Name</th><th>Initial Deposit</th><th>Profit Share %</th>
+      <th class="tc-rollup">Total Net Profit <span class="ft ft-rollup">rollup</span></th>
+      <th class="tc-formula">Current Balance <span class="ft ft-formula">formula</span></th>
+      <th>Linked Bets</th><th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function renderLedger(){
+  const settled=bets.filter(b=>b.result!=='Pending');
+  const totalStaked=bets.reduce((a,b)=>a+b.stake,0);
+  const totalReturn=settled.reduce((a,b)=>{const v=calcNet(b.result,b.stake,b.odds);return a+(v||0);},0);
+  const pending=bets.filter(b=>b.result==='Pending').length;
+  const wr=settled.length?Math.round(bets.filter(b=>b.result==='Won').length/settled.length*100):0;
+  const cards=`
+  <div class="cards">
+    <div class="kcard"><div class="kcard-val mono">${fmt(totalStaked)}</div><div class="kcard-label">Total Staked</div></div>
+    <div class="kcard"><div class="kcard-val mono ${totalReturn>=0?'pos':'neg'}">${fmt(totalReturn,true)}</div><div class="kcard-label">Net P&L (Settled)</div></div>
+    <div class="kcard"><div class="kcard-val mono">${bets.filter(b=>b.result==='Won').length}/${settled.length}</div><div class="kcard-label">Won / Settled</div></div>
+    <div class="kcard"><div class="kcard-val mono" style="color:var(--gold)">${wr}%</div><div class="kcard-label">Win Rate</div></div>
+    <div class="kcard"><div class="kcard-val mono" style="color:var(--gold)">${pending}</div><div class="kcard-label">Pending Bets</div></div>
+  </div>`;
+
+  const rows=bets.length===0
+    ?`<tr><td colspan="8"><div class="empty"><div class="empty-icon">📒</div><div>No bets logged yet. Click "+ Log Bet" to start tracking.</div></div></td></tr>`
+    :bets.map(bet=>`<tr>
+      <td class="mono" style="font-size:12px;color:var(--text-dim)">${bet.date}</td>
+      <td><strong>${bet.event}</strong></td>
+      <td class="mono">${bet.odds.toFixed(2)}</td>
+      <td class="mono">${fmt(bet.stake)}</td>
+      <td>${badgeHtml(bet.result)}</td>
+      <td>${netHtml(bet)}</td>
+      <td><span class="linked-badge">🔗 ${invName(bet.investorId)}</span></td>
+      <td><span style="display:flex;gap:4px">
+        <button class="btn btn-ghost btn-sm" onclick="openEditBet('${bet.id}')">Edit</button>
+        <button class="btn-danger" onclick="deleteBet('${bet.id}')">✕</button>
+      </span></td>
+    </tr>`).join('');
+
+  return cards+`
+  <div class="toolbar">
+    <div><span class="sec-title">BETTING LEDGER</span><span class="sec-count">${bets.length} records</span></div>
+    <button class="btn btn-gold" onclick="openAddBet()">+ Log Bet</button>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><span class="ft ft-formula">formula</span>Computed from Odds × Stake</div>
+    <div class="legend-item"><span class="ft ft-link">linked</span>Connected to Investors table — drives Rollup</div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th>Date</th><th>Match / Event</th><th>Odds Taken</th><th>Stake Size</th>
+      <th>Result</th>
+      <th class="tc-formula">Net Return <span class="ft ft-formula">formula</span></th>
+      <th>Investor <span class="ft ft-link">linked</span></th><th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+// ── MODAL HELPERS ────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')}));
+
+// ── INVESTOR MODAL ───────────────────────────────────────────────────────────
+function openAddInv(){
+  editingInvId=null;
+  document.getElementById('inv-modal-title').textContent='ADD INVESTOR';
+  document.getElementById('inv-name').value='';
+  document.getElementById('inv-deposit').value='';
+  document.getElementById('inv-ps').value='';
+  document.getElementById('inv-tnp-display').textContent='—';
+  document.getElementById('inv-bal-display').textContent='—';
+  openModal('inv-modal');
+}
+function openEditInv(id){
+  const inv=investors.find(i=>i.id===id);
+  if(!inv)return;
+  editingInvId=id;
+  document.getElementById('inv-modal-title').textContent='EDIT INVESTOR';
+  document.getElementById('inv-name').value=inv.name;
+  document.getElementById('inv-deposit').value=inv.deposit;
+  document.getElementById('inv-ps').value=inv.profitShare;
+  const tnp=totalNetProfit(id);
+  document.getElementById('inv-tnp-display').textContent=fmt(tnp,true);
+  document.getElementById('inv-tnp-display').style.color=tnp>=0?'var(--green)':'var(--red)';
+  document.getElementById('inv-bal-display').textContent=fmt(inv.deposit+tnp);
+  openModal('inv-modal');
+}
+function saveInvestor(){
+  const name=document.getElementById('inv-name').value.trim();
+  const deposit=parseFloat(document.getElementById('inv-deposit').value)||0;
+  const ps=parseFloat(document.getElementById('inv-ps').value)||0;
+  if(!name){alert('Please enter a client name.');return;}
+  if(editingInvId){
+    investors=investors.map(i=>i.id===editingInvId?{...i,name,deposit,profitShare:ps}:i);
+  } else {
+    investors.push({id:uid(),name,deposit,profitShare:ps});
+  }
+  closeModal('inv-modal');
+  render();
+}
+function deleteInv(id){
+  if(!confirm('Delete this investor? Their bets will become unlinked.'))return;
+  investors=investors.filter(i=>i.id!==id);
+  bets=bets.map(b=>b.investorId===id?{...b,investorId:''}:b);
+  render();
+}
+
+// ── BET MODAL ────────────────────────────────────────────────────────────────
+function populateInvestorSelect(selectedId){
+  const sel=document.getElementById('bet-investor');
+  sel.innerHTML='<option value="">— Unlinked —</option>'+investors.map(i=>`<option value="${i.id}"${i.id===selectedId?' selected':''}>${i.name}</option>`).join('');
+}
+function updateBetPreview(){
+  const odds=parseFloat(document.getElementById('bet-odds').value)||0;
+  const stake=parseFloat(document.getElementById('bet-stake').value)||0;
+  const result=document.getElementById('bet-result').value;
+  const v=calcNet(result,stake,odds);
+  const el=document.getElementById('bet-net-display');
+  if(v===null){el.textContent='— (Pending)';el.style.color='var(--gold)';}
+  else if(v>0){el.textContent=fmt(v,true);el.style.color='var(--green)';}
+  else if(v<0){el.textContent=fmt(v);el.style.color='var(--red)';}
+  else{el.textContent='₦0.00';el.style.color='var(--text-dim)';}
+}
+function openAddBet(){
+  editingBetId=null;
+  document.getElementById('bet-modal-title').textContent='LOG BET';
+  document.getElementById('bet-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('bet-event').value='';
+  document.getElementById('bet-odds').value='';
+  document.getElementById('bet-stake').value='';
+  document.getElementById('bet-result').value='Pending';
+  document.getElementById('bet-net-display').textContent='—';
+  document.getElementById('bet-net-display').style.color='var(--gold)';
+  populateInvestorSelect(investors[0]?.id||'');
+  openModal('bet-modal');
+}
+function openEditBet(id){
+  const bet=bets.find(b=>b.id===id);
+  if(!bet)return;
+  editingBetId=id;
+  document.getElementById('bet-modal-title').textContent='EDIT BET';
+  document.getElementById('bet-date').value=bet.date;
+  document.getElementById('bet-event').value=bet.event;
+  document.getElementById('bet-odds').value=bet.odds;
+  document.getElementById('bet-stake').value=bet.stake;
+  document.getElementById('bet-result').value=bet.result;
+  populateInvestorSelect(bet.investorId);
+  updateBetPreview();
+  openModal('bet-modal');
+}
+function saveBet(){
+  const date=document.getElementById('bet-date').value;
+  const event=document.getElementById('bet-event').value.trim();
+  const odds=parseFloat(document.getElementById('bet-odds').value)||0;
+  const stake=parseFloat(document.getElementById('bet-stake').value)||0;
+  const result=document.getElementById('bet-result').value;
+  const investorId=document.getElementById('bet-investor').value;
+  if(!event||!odds||!stake){alert('Please fill in Event, Odds, and Stake.');return;}
+  const payload={date,event,odds,stake,result,investorId};
+  if(editingBetId){
+    bets=bets.map(b=>b.id===editingBetId?{...b,...payload}:b);
+  } else {
+    bets.push({id:uid(),...payload});
+  }
+  closeModal('bet-modal');
+  render();
+}
+function deleteBet(id){
+  if(!confirm('Delete this bet record?'))return;
+  bets=bets.filter(b=>b.id!==id);
+  render();
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
